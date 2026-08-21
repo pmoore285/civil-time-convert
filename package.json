@@ -1,0 +1,16 @@
+{
+  "name": "civil-time-convert",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Convert a wall-clock time between IANA time zones, reporting DST gaps and overlaps explicitly.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "cli": "node src/cli.ts",
+    "test": "node --test test/",
+    "typecheck": "tsc"
+  }
+}
