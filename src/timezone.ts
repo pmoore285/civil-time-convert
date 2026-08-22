@@ -42,8 +42,22 @@ export type ZoneConversion =
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+// Built once per process; the set of supported zones doesn't change at runtime.
+const KNOWN_TIME_ZONES = new Set(Intl.supportedValuesOf('timeZone'))
+
+export function isValidTimeZone(timeZone: string): boolean {
+  return KNOWN_TIME_ZONES.has(timeZone)
+}
+
+function assertValidTimeZone(timeZone: string): void {
+  if (!isValidTimeZone(timeZone)) {
+    throw new Error(`unknown IANA time zone "${timeZone}"`)
+  }
+}
+
 /** Reads the civil date-time that a given instant displays as in `timeZone`. */
 export function civilTimeInZone(epochMillis: number, timeZone: string): CivilDateTime {
+  assertValidTimeZone(timeZone)
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hourCycle: 'h23',

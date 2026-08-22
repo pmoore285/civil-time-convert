@@ -95,5 +95,8 @@ part of running the code.
 
 The gap/overlap detection assumes at most one DST transition within a day of
 the requested time, which holds for every zone in the current tz database.
-It does not validate zone names before calling into `Intl` — an unknown zone
-throws whatever `Intl.DateTimeFormat` throws.
+
+Zone names are checked against `Intl.supportedValuesOf('timeZone')` before
+use; an unknown zone (typo, legacy abbreviation like `EST`, made-up name)
+raises a plain error naming the bad zone instead of whatever
+`Intl.DateTimeFormat` would throw.

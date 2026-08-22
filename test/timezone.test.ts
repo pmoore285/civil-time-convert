@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { convert, resolveCivilTime, type CivilDateTime } from '../src/timezone.ts'
+import { convert, isValidTimeZone, resolveCivilTime, type CivilDateTime } from '../src/timezone.ts'
 
 function civil(year: number, month: number, day: number, hour: number, minute: number, second = 0): CivilDateTime {
   return { year, month, day, hour, minute, second }
@@ -85,6 +85,27 @@ test('resolveCivilTime: Sydney springs forward in October', () => {
   if (result.kind !== 'gap') return
   assert.equal(result.usingEarlierOffset, Date.UTC(2024, 9, 5, 16, 30, 0))
   assert.equal(result.usingLaterOffset, Date.UTC(2024, 9, 5, 15, 30, 0))
+})
+
+test('isValidTimeZone: recognizes real IANA names and rejects made-up or legacy ones', () => {
+  assert.equal(isValidTimeZone('America/New_York'), true)
+  assert.equal(isValidTimeZone('Europe/London'), true)
+  assert.equal(isValidTimeZone('Mars/Olympus_Mons'), false)
+  assert.equal(isValidTimeZone('EST'), false)
+})
+
+test('convert: throws a clear error for an unknown "from" zone instead of an Intl internal error', () => {
+  assert.throws(
+    () => convert(civil(2024, 6, 15, 12, 0), 'Nowhere/Fake', 'Europe/London'),
+    /unknown IANA time zone "Nowhere\/Fake"/,
+  )
+})
+
+test('convert: throws a clear error for an unknown "to" zone', () => {
+  assert.throws(
+    () => convert(civil(2024, 6, 15, 12, 0), 'Europe/London', 'Nowhere/Fake'),
+    /unknown IANA time zone "Nowhere\/Fake"/,
+  )
 })
 
 test('resolveCivilTime: the seconds right at the edges of the New York gap are still valid', () => {

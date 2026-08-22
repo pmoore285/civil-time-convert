@@ -52,8 +52,16 @@ function main(argv: string[]): void {
     return
   }
 
-  const civil = parseCivil(parsed.at)
-  const result = convert(civil, parsed.from, parsed.to)
+  let civil: CivilDateTime
+  let result: ReturnType<typeof convert>
+  try {
+    civil = parseCivil(parsed.at)
+    result = convert(civil, parsed.from, parsed.to)
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err))
+    process.exitCode = 1
+    return
+  }
 
   switch (result.kind) {
     case 'valid':
