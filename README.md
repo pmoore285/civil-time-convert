@@ -70,6 +70,12 @@ not `EST`). The `--at` value is a local wall-clock time in the `--from` zone,
 in `YYYY-MM-DDTHH:mm[:ss]` form — no `Z`, no offset, because the whole point
 is that it's ambiguous which offset applies.
 
+Not sure what a zone is called? List every name the runtime recognizes:
+
+```sh
+node src/cli.ts --list-zones
+```
+
 ## Running the tests
 
 The test suite is table-driven: a list of `{ input, from, to, expected }`

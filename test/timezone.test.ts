@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { convert, isValidTimeZone, resolveCivilTime, type CivilDateTime } from '../src/timezone.ts'
+import { convert, isValidTimeZone, listSupportedTimeZones, resolveCivilTime, type CivilDateTime } from '../src/timezone.ts'
 
 function civil(year: number, month: number, day: number, hour: number, minute: number, second = 0): CivilDateTime {
   return { year, month, day, hour, minute, second }
@@ -92,6 +92,14 @@ test('isValidTimeZone: recognizes real IANA names and rejects made-up or legacy 
   assert.equal(isValidTimeZone('Europe/London'), true)
   assert.equal(isValidTimeZone('Mars/Olympus_Mons'), false)
   assert.equal(isValidTimeZone('EST'), false)
+})
+
+test('listSupportedTimeZones: includes known zones, sorted, with no duplicates', () => {
+  const zones = listSupportedTimeZones()
+  assert.ok(zones.includes('America/New_York'))
+  assert.ok(zones.includes('Europe/London'))
+  assert.deepEqual(zones, [...zones].sort())
+  assert.equal(new Set(zones).size, zones.length)
 })
 
 test('convert: throws a clear error for an unknown "from" zone instead of an Intl internal error', () => {

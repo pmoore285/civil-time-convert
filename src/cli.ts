@@ -1,4 +1,4 @@
-import { convert, formatCivil, type CivilDateTime } from './timezone.ts'
+import { convert, formatCivil, listSupportedTimeZones, type CivilDateTime } from './timezone.ts'
 
 function parseCivil(text: string): CivilDateTime {
   const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(text.trim())
@@ -37,12 +37,22 @@ function parseArgs(argv: string[]): { from: string; to: string; at: string } {
     }
   }
   if (!options.from || !options.to || !options.at) {
-    throw new Error('usage: civil-time-convert --from <zone> --to <zone> --at <YYYY-MM-DDTHH:mm[:ss]>')
+    throw new Error(
+      'usage: civil-time-convert --from <zone> --to <zone> --at <YYYY-MM-DDTHH:mm[:ss]>\n' +
+        '   or: civil-time-convert --list-zones',
+    )
   }
   return { from: options.from, to: options.to, at: options.at }
 }
 
 function main(argv: string[]): void {
+  if (argv.includes('--list-zones')) {
+    for (const zone of listSupportedTimeZones()) {
+      console.log(zone)
+    }
+    return
+  }
+
   let parsed: { from: string; to: string; at: string }
   try {
     parsed = parseArgs(argv)

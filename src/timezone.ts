@@ -49,6 +49,11 @@ export function isValidTimeZone(timeZone: string): boolean {
   return KNOWN_TIME_ZONES.has(timeZone)
 }
 
+/** All IANA zone names this runtime knows about, sorted for stable output. */
+export function listSupportedTimeZones(): string[] {
+  return [...KNOWN_TIME_ZONES].sort()
+}
+
 function assertValidTimeZone(timeZone: string): void {
   if (!isValidTimeZone(timeZone)) {
     throw new Error(`unknown IANA time zone "${timeZone}"`)
