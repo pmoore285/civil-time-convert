@@ -1,6 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { convert, isValidTimeZone, listSupportedTimeZones, resolveCivilTime, type CivilDateTime } from '../src/timezone.ts'
+import {
+  convert,
+  formatOffset,
+  isValidTimeZone,
+  listSupportedTimeZones,
+  offsetMinutesAt,
+  resolveCivilTime,
+  type CivilDateTime,
+} from '../src/timezone.ts'
 
 function civil(year: number, month: number, day: number, hour: number, minute: number, second = 0): CivilDateTime {
   return { year, month, day, hour, minute, second }
@@ -114,6 +122,21 @@ test('convert: throws a clear error for an unknown "to" zone', () => {
     () => convert(civil(2024, 6, 15, 12, 0), 'Europe/London', 'Nowhere/Fake'),
     /unknown IANA time zone "Nowhere\/Fake"/,
   )
+})
+
+test('formatOffset: renders positive, negative, zero, and half-hour offsets', () => {
+  assert.equal(formatOffset(0), '+00:00')
+  assert.equal(formatOffset(330), '+05:30')
+  assert.equal(formatOffset(-300), '-05:00')
+  assert.equal(formatOffset(-570), '-09:30')
+  assert.equal(formatOffset(60), '+01:00')
+})
+
+test('offsetMinutesAt: matches known standard and daylight offsets', () => {
+  assert.equal(offsetMinutesAt(Date.UTC(2024, 0, 15, 12, 0, 0), 'America/New_York'), -300)
+  assert.equal(offsetMinutesAt(Date.UTC(2024, 6, 15, 12, 0, 0), 'America/New_York'), -240)
+  assert.equal(offsetMinutesAt(Date.UTC(2024, 6, 15, 12, 0, 0), 'Asia/Kolkata'), 330)
+  assert.equal(offsetMinutesAt(Date.UTC(2024, 6, 15, 12, 0, 0), 'Europe/London'), 60)
 })
 
 test('resolveCivilTime: the seconds right at the edges of the New York gap are still valid', () => {

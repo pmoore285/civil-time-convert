@@ -90,7 +90,7 @@ export function civilTimeInZone(epochMillis: number, timeZone: string): CivilDat
 }
 
 /** UTC offset, in minutes, in effect for `timeZone` at the given instant. */
-function offsetMinutesAt(epochMillis: number, timeZone: string): number {
+export function offsetMinutesAt(epochMillis: number, timeZone: string): number {
   const f = civilTimeInZone(epochMillis, timeZone)
   const asIfUTC = Date.UTC(f.year, f.month - 1, f.day, f.hour, f.minute, f.second)
   return Math.round((asIfUTC - epochMillis) / 60_000)

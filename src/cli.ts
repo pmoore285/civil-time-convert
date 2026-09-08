@@ -1,4 +1,4 @@
-import { convert, formatCivil, listSupportedTimeZones, type CivilDateTime } from './timezone.ts'
+import { convert, formatCivil, formatOffset, listSupportedTimeZones, offsetMinutesAt, type CivilDateTime } from './timezone.ts'
 
 function parseCivil(text: string): CivilDateTime {
   const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(text.trim())
@@ -73,19 +73,31 @@ function main(argv: string[]): void {
     return
   }
 
+  // Renders a civil time together with the UTC offset actually in effect for
+  // `zone` at `instant`, e.g. "2024-11-03T01:30:00 -05:00".
+  const withOffset = (civilTime: CivilDateTime, instant: number, zone: string): string =>
+    `${formatCivil(civilTime)} ${formatOffset(offsetMinutesAt(instant, zone))}`
+
   switch (result.kind) {
     case 'valid':
-      console.log(`${formatCivil(civil)} in ${parsed.from} is ${formatCivil(result.target)} in ${parsed.to}`)
+      console.log(
+        `${withOffset(civil, result.instant, parsed.from)} in ${parsed.from} is ` +
+          `${withOffset(result.target, result.instant, parsed.to)} in ${parsed.to}`,
+      )
       break
     case 'ambiguous':
       console.log(`${formatCivil(civil)} in ${parsed.from} is ambiguous: it happens twice there.`)
-      console.log(`  earlier occurrence -> ${formatCivil(result.targetEarlier)} in ${parsed.to}`)
-      console.log(`  later occurrence   -> ${formatCivil(result.targetLater)} in ${parsed.to}`)
+      console.log(`  earlier occurrence -> ${withOffset(result.targetEarlier, result.earlier, parsed.to)} in ${parsed.to}`)
+      console.log(`  later occurrence   -> ${withOffset(result.targetLater, result.later, parsed.to)} in ${parsed.to}`)
       break
     case 'gap':
       console.log(`${formatCivil(civil)} does not exist in ${parsed.from} (clocks skip over it).`)
-      console.log(`  using the offset from before the jump -> ${formatCivil(result.targetUsingEarlierOffset)} in ${parsed.to}`)
-      console.log(`  using the offset from after the jump  -> ${formatCivil(result.targetUsingLaterOffset)} in ${parsed.to}`)
+      console.log(
+        `  using the offset from before the jump -> ${withOffset(result.targetUsingEarlierOffset, result.usingEarlierOffset, parsed.to)} in ${parsed.to}`,
+      )
+      console.log(
+        `  using the offset from after the jump  -> ${withOffset(result.targetUsingLaterOffset, result.usingLaterOffset, parsed.to)} in ${parsed.to}`,
+      )
       break
   }
 }

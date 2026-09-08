@@ -61,8 +61,8 @@ node src/cli.ts --from America/New_York --to Europe/London --at 2024-11-03T01:30
 
 ```
 2024-11-03T01:30:00 in America/New_York is ambiguous: it happens twice there.
-  earlier occurrence -> 2024-11-03T09:30:00 in Europe/London
-  later occurrence   -> 2024-11-03T10:30:00 in Europe/London
+  earlier occurrence -> 2024-11-03T05:30:00 +00:00 in Europe/London
+  later occurrence   -> 2024-11-03T06:30:00 +00:00 in Europe/London
 ```
 
 Zone names are whatever the IANA database calls them (`America/New_York`,
