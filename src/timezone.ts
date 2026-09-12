@@ -108,45 +108,76 @@ function civilEquals(a: CivilDateTime, b: CivilDateTime): boolean {
 }
 
 /**
+ * Finds every distinct UTC offset `timeZone` is on between `low` and `high`,
+ * in chronological order, by bisecting down to one-second resolution.
+ *
+ * A single DST transition yields two offsets, which is all a plain
+ * before/after probe needs. A handful of zones have changed their base
+ * offset and their DST rule within the same day (e.g. a country moving to a
+ * new standard time right as it also ends daylight saving) which produces a
+ * third offset in between that a before/after probe would never see.
+ */
+function findTransitionOffsets(low: number, high: number, timeZone: string): number[] {
+  const offsetLow = offsetMinutesAt(low, timeZone)
+  const offsetHigh = offsetMinutesAt(high, timeZone)
+
+  if (offsetLow === offsetHigh) return [offsetLow]
+  if (high - low <= 1000) return [offsetLow, offsetHigh]
+
+  const mid = low + Math.floor((high - low) / 2)
+  const left = findTransitionOffsets(low, mid, timeZone)
+  const right = findTransitionOffsets(mid, high, timeZone)
+  if (left[left.length - 1] === right[0]) right.shift()
+  return left.concat(right)
+}
+
+/**
  * Resolves a civil date-time in `timeZone` to the instant(s) it refers to.
  *
- * The approach: read the UTC offset a day before and a day after the naive
- * timestamp. If they match, there's no nearby transition and the answer is
- * unambiguous. If they differ, build a candidate instant from each offset
- * and check which candidate(s) actually format back to the requested civil
- * time. Zero matches means the time was skipped (gap); two means it happened
- * twice (ambiguous, fall-back overlap).
+ * The approach: collect every offset `timeZone` uses in the day before and
+ * the day after the naive timestamp. One offset means no nearby transition,
+ * so the answer is unambiguous. More than one means build a candidate
+ * instant from each distinct offset and check which candidate(s) actually
+ * format back to the requested civil time. Zero matches means the time was
+ * skipped (gap); two means it happened twice (ambiguous, fall-back
+ * overlap). Zones with a double transition close together surface a third
+ * offset here that a simple before/after probe would miss, which matters
+ * when that middle offset turns out to be the one that actually round-trips.
  */
 export function resolveCivilTime(civil: CivilDateTime, timeZone: string): WallClockResolution {
   const naiveUtc = Date.UTC(civil.year, civil.month - 1, civil.day, civil.hour, civil.minute, civil.second)
 
-  const offsetBefore = offsetMinutesAt(naiveUtc - DAY_MS, timeZone)
-  const offsetAfter = offsetMinutesAt(naiveUtc + DAY_MS, timeZone)
+  const offsets = findTransitionOffsets(naiveUtc - DAY_MS, naiveUtc + DAY_MS, timeZone)
 
-  if (offsetBefore === offsetAfter) {
-    return { kind: 'valid', instant: naiveUtc - offsetBefore * 60_000 }
+  if (offsets.length === 1) {
+    return { kind: 'valid', instant: naiveUtc - offsets[0] * 60_000 }
   }
 
-  const usingEarlierOffset = naiveUtc - offsetBefore * 60_000
-  const usingLaterOffset = naiveUtc - offsetAfter * 60_000
-
-  const earlierMatches = civilEquals(civilTimeInZone(usingEarlierOffset, timeZone), civil)
-  const laterMatches = civilEquals(civilTimeInZone(usingLaterOffset, timeZone), civil)
-
-  if (earlierMatches && laterMatches) {
-    return {
-      kind: 'ambiguous',
-      earlier: Math.min(usingEarlierOffset, usingLaterOffset),
-      later: Math.max(usingEarlierOffset, usingLaterOffset),
-    }
+  const candidates: number[] = []
+  for (const offsetMinutes of offsets) {
+    const instant = naiveUtc - offsetMinutes * 60_000
+    if (!candidates.includes(instant)) candidates.push(instant)
   }
 
-  if (earlierMatches) return { kind: 'valid', instant: usingEarlierOffset }
-  if (laterMatches) return { kind: 'valid', instant: usingLaterOffset }
+  const matches = candidates.filter((instant) => civilEquals(civilTimeInZone(instant, timeZone), civil))
 
-  // Neither candidate round-trips: the requested civil time was skipped
-  // entirely. Report both nearby interpretations rather than guessing one.
-  return { kind: 'gap', usingEarlierOffset, usingLaterOffset }
+  if (matches.length === 0) {
+    // None of the offsets in play round-trip: the requested civil time was
+    // skipped entirely. Report the bracketing interpretations rather than
+    // guessing one.
+    return { kind: 'gap', usingEarlierOffset: candidates[0], usingLaterOffset: candidates[candidates.length - 1] }
+  }
+
+  if (matches.length === 1) {
+    return { kind: 'valid', instant: matches[0] }
+  }
+
+  // More than two matches would mean the same civil time round-trips under
+  // three or more distinct offsets, which no zone in the current tz
+  // database does. Collapse to the outer bracket rather than growing the
+  // public type for a case that can't currently happen.
+  const sorted = [...matches].sort((a, b) => a - b)
+  return { kind: 'ambiguous', earlier: sorted[0], later: sorted[sorted.length - 1] }
 }
 
 export function convert(civil: CivilDateTime, fromZone: string, toZone: string): ZoneConversion {

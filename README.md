@@ -18,11 +18,11 @@ guessing.
 
 ## How
 
-`resolveCivilTime` reads the UTC offset a day before and a day after the
-requested wall-clock time. If they're the same, there's no nearby transition
-and the answer is unambiguous. If they differ, it builds one candidate
-instant per offset and checks which one(s) actually format back to the
-requested time:
+`resolveCivilTime` bisects the day before and the day after the requested
+wall-clock time to find every distinct UTC offset the zone is on in that
+window. One offset means there's no nearby transition and the answer is
+unambiguous. More than one means it builds a candidate instant per offset
+and checks which one(s) actually format back to the requested time:
 
 - both match -> the time is ambiguous (fall-back overlap), both instants are
   real and returned as `earlier` / `later`.
@@ -30,6 +30,12 @@ requested time:
   interpretations are returned as `usingEarlierOffset` / `usingLaterOffset`
   so the caller can decide what to do.
 - exactly one matches -> that's the answer.
+
+Bisecting rather than just sampling the two endpoints also catches zones
+that change their base offset and their DST rule within the same day: that
+produces a third offset in between which can turn out to be the one that
+actually round-trips, when a plain before/after probe would have missed it
+and reported a bogus gap.
 
 Time zone data comes from `Intl`, which is backed by the ICU tz database
 bundled with Node. There's no separate tz data package to install or keep in
@@ -99,8 +105,12 @@ part of running the code.
 
 ## Known limitations
 
-The gap/overlap detection assumes at most one DST transition within a day of
-the requested time, which holds for every zone in the current tz database.
+The gap/overlap detection handles zones with more than one transition within
+a day of the requested time (see "How" above), but it still only tracks two
+candidate instants for an ambiguous or skipped time. A civil time that
+round-trips under three or more distinct offsets would collapse to the
+earliest and latest of them instead of reporting the middle one too. No zone
+in the current tz database does this.
 
 Zone names are checked against `Intl.supportedValuesOf('timeZone')` before
 use; an unknown zone (typo, legacy abbreviation like `EST`, made-up name)
