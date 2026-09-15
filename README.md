@@ -82,6 +82,42 @@ Not sure what a zone is called? List every name the runtime recognizes:
 node src/cli.ts --list-zones
 ```
 
+## HTTP
+
+For callers that aren't Node, `src/server.ts` exposes the same logic over
+plain JSON:
+
+```sh
+node src/server.ts
+# civil-time-convert listening on http://localhost:8080
+```
+
+`PORT` overrides the default port. Two routes, both `GET`:
+
+```sh
+curl 'http://localhost:8080/convert?from=America/New_York&to=Europe/London&at=2024-11-03T01:30'
+```
+
+```json
+{
+  "kind": "ambiguous",
+  "input": { "civil": "2024-11-03T01:30:00", "zone": "America/New_York" },
+  "earlier": { "instant": "2024-11-03T05:30:00.000Z", "civil": "2024-11-03T05:30:00", "zone": "Europe/London", "offset": "+00:00" },
+  "later": { "instant": "2024-11-03T06:30:00.000Z", "civil": "2024-11-03T06:30:00", "zone": "Europe/London", "offset": "+00:00" }
+}
+```
+
+`kind` is `"valid"`, `"ambiguous"`, or `"gap"`, matching `convert`'s result;
+a `"valid"` response carries a single `result` field instead of a pair.
+Bad input (missing query parameter, unparseable `at`, unknown zone) comes
+back as a 400 with `{ "error": "..." }` rather than a stack trace.
+
+```sh
+curl 'http://localhost:8080/zones'
+```
+
+returns `{ "zones": [...] }`, the same list as `--list-zones`.
+
 ## Running the tests
 
 The test suite is table-driven: a list of `{ input, from, to, expected }`

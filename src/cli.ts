@@ -1,28 +1,12 @@
-import { convert, formatCivil, formatOffset, listSupportedTimeZones, offsetMinutesAt, type CivilDateTime } from './timezone.ts'
-
-function parseCivil(text: string): CivilDateTime {
-  const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(text.trim())
-  if (!match) {
-    throw new Error(`could not parse "${text}" as YYYY-MM-DDTHH:mm[:ss]`)
-  }
-  const [, year, month, day, hour, minute, second] = match as unknown as [
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string | undefined,
-  ]
-  return {
-    year: Number(year),
-    month: Number(month),
-    day: Number(day),
-    hour: Number(hour),
-    minute: Number(minute),
-    second: second ? Number(second) : 0,
-  }
-}
+import {
+  convert,
+  formatCivil,
+  formatOffset,
+  listSupportedTimeZones,
+  offsetMinutesAt,
+  parseCivilTime,
+  type CivilDateTime,
+} from './timezone.ts'
 
 function parseArgs(argv: string[]): { from: string; to: string; at: string } {
   const options: Record<string, string> = {}
@@ -65,7 +49,7 @@ function main(argv: string[]): void {
   let civil: CivilDateTime
   let result: ReturnType<typeof convert>
   try {
-    civil = parseCivil(parsed.at)
+    civil = parseCivilTime(parsed.at)
     result = convert(civil, parsed.from, parsed.to)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))

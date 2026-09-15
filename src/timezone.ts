@@ -217,3 +217,28 @@ export function formatCivil(c: CivilDateTime): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${c.year}-${pad(c.month)}-${pad(c.day)}T${pad(c.hour)}:${pad(c.minute)}:${pad(c.second)}`
 }
+
+/** Inverse of {@link formatCivil}: parses `YYYY-MM-DDTHH:mm[:ss]` (space also accepted in place of `T`). */
+export function parseCivilTime(text: string): CivilDateTime {
+  const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(text.trim())
+  if (!match) {
+    throw new Error(`could not parse "${text}" as YYYY-MM-DDTHH:mm[:ss]`)
+  }
+  const [, year, month, day, hour, minute, second] = match as unknown as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string | undefined,
+  ]
+  return {
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+    second: second ? Number(second) : 0,
+  }
+}
