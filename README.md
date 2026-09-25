@@ -41,6 +41,20 @@ Time zone data comes from `Intl`, which is backed by the ICU tz database
 bundled with Node. There's no separate tz data package to install or keep in
 sync.
 
+## Install
+
+```sh
+npm install -g civil-time-convert
+```
+
+This installs a `civil-time-convert` command backed by `src/cli.ts` directly —
+there's no build step, so what you get is exactly what's in the repo. It
+still needs the Node version in `engines` for type stripping (see "Running
+the tests" below).
+
+Prefer not to install anything? `npx civil-time-convert --from ... --to ...`
+works the same way.
+
 ## Usage
 
 As a library:
@@ -59,7 +73,13 @@ if (result.kind === 'ambiguous') {
 }
 ```
 
-From the command line:
+From the command line, once installed:
+
+```sh
+civil-time-convert --from America/New_York --to Europe/London --at 2024-11-03T01:30
+```
+
+Or straight from a checkout, without installing:
 
 ```sh
 node src/cli.ts --from America/New_York --to Europe/London --at 2024-11-03T01:30
